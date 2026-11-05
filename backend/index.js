@@ -1,39 +1,35 @@
-//JS
-//common JS--> antigua, mas compatible
-// Es MODULE --> La mas reciente "import y from"
-const express=require('express');
-const mongoose= require('mongoose');
-const bodyparser=require('body-parser');
-const cookieParser=require('cookie-parser');
-const User=require('./models/user');
-const db=require('./config/config').get(process.env.NODE_ENV);
+//common JS -> antigua, mas compatible
+//ES MODULE -> La mas reciente "import y from"
+const express = require('express');
+const mongoose = require('mongoose');
+const bodyparser = require('body-parser');
+const cookieParser = require('cookie-parser');
+const User = require('./models/user');
+const db = require('./config/config').get(process.env.NODE_ENV);
 const { auth } = require('./middleware/auth');
 
 
-const app=express();
+const app = express();
 // app use
-app.use(bodyparser.urlencoded({extended : false}));
+app.use(bodyparser.urlencoded({ extended: false }));
 app.use(bodyparser.json());
 app.use(cookieParser());
 
 // database connection
-mongoose.Promise=global.Promise;
-mongoose.connect(db.DATABASE,{ useNewUrlParser: true,useUnifiedTopology:true },function(err){
-    if(err) console.log(err);
+mongoose.Promise = global.Promise;
+mongoose.connect(db.DATABASE, { useNewUrlParser: true, useUnifiedTopology: true }, function (err) {
+    if (err) console.log(err);
     console.log("database is connected");
 });
 
 
 // adding new user (sign-up route)
-app.post('/api/register', async function(req, res) {
-    if (req.body.password != req.body.password2) return res.status(400).json({
-        message: "password not match" 
-    });
     
+app.post('/api/register', async function (req, res) {
+    if (req.body.password != req.body.password2) return res.status(400).json({ message: "password not match" });
     const newuser = new User(req.body);
     const user = await User.findOne({ email: newuser.email });
     if (user) return res.status(400).json({ auth: false, message: "email exits" });
-    
     try {
         const user = await newuser.save();
         return res.status(200).json({
@@ -48,12 +44,14 @@ app.post('/api/register', async function(req, res) {
 
 
 // login user
-app.post('/api/login', async function(req, res) {
-    // solo se LET cuando se redeclara un valor
+
+app.post('/api/login', async function (req, res) {
+    //solo se LET cuando se redeclara un valor
     const token = req.cookies.auth;
-    // Para evitar el uso de callbacks usamos funciones asincronas
-    // Manejamos el error try/catch
-    // Manejamos en donde exista y ya esta logeado con IF
+    //Para evitar el uso de callbacks usamos funciones asincronas
+    //Manejamos el error try/catch
+    //Manejamos en donde exista y ya esta logeado con IF
+
     try {
         const user = await User.findByToken(token);
         if (user) return res.status(400).json({
@@ -68,6 +66,8 @@ app.post('/api/login', async function(req, res) {
     try {
         const user = await User.findOne({ 'email': req.body.email });
         if (!user) return res.status(400).json({ isAuth: false, message: 'Auth failed' });
+
+
 
         const { e, isMatch } = user.comparepassword(req.body.password);
         if (!isMatch && e) return res.status(400).json({ isAuth: false, message: 'Auth failed' });
@@ -85,6 +85,7 @@ app.post('/api/login', async function(req, res) {
 });
 
 //logout user
+
 app.get('/api/logout',auth,function(req,res){
     req.user.deleteToken(req.token,(err,user)=>{
         if(err) return res.status(400).send(err);
@@ -94,20 +95,43 @@ app.get('/api/logout',auth,function(req,res){
 
 // get logged in user
 app.get('/api/profile',auth,function(req,res){
+
+app.get('/api/logout', auth, async function (req, res) {
+    try {
+        await req.user.deleteToken();
+        return res.status(200);
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({msg:error});
+    }
+});
+
+// get logged in user
+app.get('/api/profile', auth, function (req, res) {
+
     res.json({
         isAuth: true,
         id: req.user._id,
         email: req.user.email,
         name: req.user.firstname + req.user.lastname
+
     })
 });
 
 app.get('/',function(req,res){
+
+
+    })
+});
+
+
+app.get('/', function (req, res) {
+
     res.status(200).send(`Welcome to login , sign-up api`);
 });
 
 // listening port
-const PORT=process.env.PORT||3000;
-app.listen(PORT,()=>{
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
     console.log(`app is live at ${PORT}`);
-});
+}); 
